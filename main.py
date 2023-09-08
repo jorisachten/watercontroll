@@ -1,49 +1,39 @@
 import time
 import network
 import socket
-import oled
 import valve
-import MotorDriver
+import valveSupervisor
 from machine import Pin
 import uasyncio as asyncio
+import PicoRobotics
 
 
 
-
-m = 0
-#m = MotorDriver.MotorDriver()
+board = PicoRobotics.KitronikPicoRobotics()
 
 
-valveList = []
-valveList.append(valve.valve("DruppelSlang"	,m,"MA"))
-valveList.append(valve.valve("Voortuin"		,m,"MB"))
-valveList.append(valve.valve("Achtertuin_1"	,m,"MC"))
-valveList.append(valve.valve("Achtertuin_2"	,m,"MD"))
+valveList = [valve.valve("DruppelSlang"	,1,board,15000),
+             valve.valve("Voortuin"	    ,2,board,15000),
+             valve.valve("Achtertuin_1"	,3,board,15000),
+             valve.valve("Achtertuin_2"	,4,board,15000)]
+
+Supervisor = valveSupervisor.valveSupervisor(valveList)
+
 
 onboard = Pin("LED", Pin.OUT, value=0)
 button = Pin(15, Pin.IN, Pin.PULL_UP)
 
-WaterAllSequence = False
+
+
+ssid = 'dlink'
+password = ''
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-OLED = oled.OLED_1inch3()
-
-ssid = 'Achten'
-password = 'internet&snoepjes4layka!'
 wlan = network.WLAN(network.STA_IF)
+
+
+    
 
 
 def connect_to_network():
@@ -57,29 +47,20 @@ def connect_to_network():
             break
         max_wait -= 1
         print('waiting for connection...')
-        OLED.fill(0x0000)
-        OLED.text("connecting " + str(max_wait),1,10,OLED.white)
-        OLED.show()
-        time.sleep(1)
         time.sleep(1)
 
     if wlan.status() != 3:
-        OLED.fill(0x0000)
-        OLED.text("CONNECT FAILED:",1,27,OLED.white)
-        OLED.show()
+        print('connection failed!')
     else:
         print('connected')
         status = wlan.ifconfig()
         print('ip = ' + status[0])
-        OLED.fill(0x0000)
-        OLED.text("CONNECTION OK:",1,10,OLED.white)
-        OLED.text(status[0],1,27,OLED.white)
-        OLED.show()
+
         
         
         
 async def serve_client(reader, writer):
-    global WaterAllSequence
+    global Supervisor
     global valve
     print("Client connected")
     request_line = await reader.readline()
@@ -100,13 +81,15 @@ async def serve_client(reader, writer):
             valve.setState(False)
             
     if request.find('WaterAllSequence=on') == 8:
-        WaterAllSequence = True
+        Supervisor.StartAutoWatering()
+
         
-    if request.find('WaterAllSequence=off') == 8:    
-        WaterAllSequence = False
+    if request.find('WaterAllSequence=off') == 8:
+        Supervisor.StopAutoWatering()
+
         
     
-    html = generateHTML(valveList,WaterAllSequence)
+    html = generateHTML(valveList,Supervisor)
     writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
     writer.write(html)
 
@@ -139,9 +122,9 @@ HTML_tail = """
 </body></html>"""
 
 
-def generateHTML(valveList, WaterAllSequence):
+def generateHTML(valveList, Supervisor):
     HTML = HTML_head
-    if WaterAllSequence == False:
+    if Supervisor.GetAutoWatering() == False:
         for valve in valveList:
             if valve.getState() == True:
                 HTML += '<button class="buttonGreen" name="'+ valve.getName()+'" value="off" type="submit">'+ valve.getName()+'</button>'
@@ -171,17 +154,6 @@ def generateHTML(valveList, WaterAllSequence):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 async def main():
     print('Connecting to Network...')
     connect_to_network()
@@ -189,11 +161,15 @@ async def main():
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 1234))
     while True:
-        onboard.on()
-        print("heartbeat")
-        await asyncio.sleep(0.25)
-        onboard.off()
-        await asyncio.sleep(5)
+        await asyncio.sleep(0.05)
+        onboard.toggle()
+        
+        for valve in valveList:
+            valve.Tick()
+            
+        Supervisor.Tick()        
+        
+                
         
 try:
     asyncio.run(main())
