@@ -2,7 +2,7 @@ import time
 import valve
 
 
-MaximumWateringTime_ms = 30000
+MaximumWateringTime_ms = 30*60*1000
 
 class valveSupervisor():
     def __init__(self,valveList):

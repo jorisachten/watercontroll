@@ -12,10 +12,10 @@ import PicoRobotics
 board = PicoRobotics.KitronikPicoRobotics()
 
 
-valveList = [valve.valve("DruppelSlang"	,1,board,15000),
-             valve.valve("Voortuin"	    ,2,board,15000),
-             valve.valve("Achtertuin_1"	,3,board,15000),
-             valve.valve("Achtertuin_2"	,4,board,15000)]
+valveList = [valve.valve("Achtertuin_1"	,2,board,30*60*1000),
+             valve.valve("Achtertuin_2"	,3,board,30*60*1000),
+             valve.valve("DruppelSlang"	,1,board,30*60*1000),
+             valve.valve("Voortuin"	    ,4,board,30*60*1000)]
 
 Supervisor = valveSupervisor.valveSupervisor(valveList)
 
@@ -25,10 +25,11 @@ button = Pin(15, Pin.IN, Pin.PULL_UP)
 
 
 
-ssid = 'dlink'
-password = ''
+ssid = 'Achten'
+password = 'internet&snoepjes4layka!'
 
 
+time.sleep(5)
 
 wlan = network.WLAN(network.STA_IF)
 

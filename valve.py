@@ -1,22 +1,22 @@
 import time
 
 StartState = False
-DefaultValveRunTime_ms = 5000
+DefaultValveRunTime_ms = 20000
 DefaultValveBacklash_ms = 1000
-DefaultValveBrakeTime_ms = 1000
-speed = 50
+DefaultValveBrakeTime_ms = 500
+speed = 100
 
 class valve():
     def __init__(self,name, motorChannel, motorboard, maxOnTime_ms = 30000):
         self.name              = name
         self.motorChannel      = motorChannel
-        self.LastChangeTime    = time.ticks_ms()
         self.state             = StartState
         self.motorboard        = motorboard
         self.maxOnTime_ms	   = maxOnTime_ms
         self.ValveRunTime_ms   = DefaultValveRunTime_ms
         self.ValveBacklash_ms  = DefaultValveBacklash_ms
         self.ValveBrakeTime_ms = DefaultValveBrakeTime_ms
+        self.LastChangeTime = time.ticks_ms() - self.maxOnTime_ms   # do this to prevent valve alignment during start-up
         
     def getState(self):
         return self.state
@@ -70,11 +70,11 @@ class valve():
     
     def Tick(self):
         
+        
         if self.getState() == True and self.getActiveStateTime() > self.maxOnTime_ms:
             self.setState(False)
             print('auto turn off valve '+self.getName())
-        
-        
+
         elif self.getActiveStateTime() < self.ValveBrakeTime_ms:
             self.motorboard.motorOff(self.getMotorChannel())
         elif self.getActiveStateTime() < self.ValveBrakeTime_ms + self.ValveRunTime_ms:
