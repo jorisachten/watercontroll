@@ -25,7 +25,7 @@ button = Pin(15, Pin.IN, Pin.PULL_UP)
 
 
 
-ssid = 'Achten'
+ssid = 'Achten_2'
 password = 'internet&snoepjes4layka!'
 
 
